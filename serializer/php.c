@@ -41,18 +41,30 @@ int yac_serializer_php_pack(zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 } /* }}} */
 
 zval * yac_serializer_php_unpack(char *content, size_t len, char **msg, zval *rv) /* {{{ */ {
+	TSRMLS_FETCH();
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
 	p = (const unsigned char*)content;
 
 	ZVAL_FALSE(rv);
 	PHP_VAR_UNSERIALIZE_INIT(var_hash);
-	if (!php_var_unserialize(rv, &p, p + len,  &var_hash)) {
+
+#if ZEND_MODULE_API_NO >= 20151012
+	if (!php_var_unserialize(rv, &p, p + len, &var_hash TSRMLS_CC)) {
 		zval_ptr_dtor(rv);
 		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 		spprintf(msg, 0, "unpack error at offset %ld of %ld bytes", (long)((char*)p - content), len);
-		return NULL;
+		return rv;
 	}
+#else
+	if (!php_var_unserialize(&rv, &p, p + len, &var_hash TSRMLS_CC)) {
+		zval_ptr_dtor(&rv);
+		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
+		spprintf(msg, 0, "unpack error at offset %ld of %ld bytes", (long)((char*)p - content), len);
+		return rv;
+	}
+#endif
+
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
 	return rv;
