@@ -316,7 +316,7 @@ do_verify:
 				}
 
 				if (k.ttl) {
-					if (k.ttl <= tv) {
+					if ((uint)k.ttl <= (uint)tv) {
 						++YAC_SG(miss);
 						USER_FREE(s);
 						return 0;
